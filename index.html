@@ -242,8 +242,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
 // Dien truc tiep o day hoac qua UI
-const SUPABASE_URL = "https://qcilaybuoqpucrllnair.supabase.co";
-const SUPABASE_KEY = "sb_publishable_FC8EdbW6sDTszt-CuAxbFQ_Sx_fu18Q";
+const SUPABASE_URL = "";
+const SUPABASE_KEY = "";
 
 // ── STATE ─────────────────────────────────────────────────────
 let allData = [], filteredData = [];
@@ -295,26 +295,50 @@ async function loadData() {
   document.getElementById('loadingEl').style.display = 'flex';
 
   try {
-    // Query toan bo orders, group by date+platform de giam luong data
-    // Supabase REST: select aggregated data
     document.getElementById('loadingMsg').textContent = 'Đang tải dữ liệu từ Supabase...';
 
-    const data = await sbQuery(
-      `orders?select=order_id,order_date,platform,sku,product_name,qty,revenue,cogs,gross_profit,gm_pct,status&order=order_date.desc`
-    );
+    // Phan trang: load tung batch 1000 cho den khi het
+    const BATCH = 1000;
+    let offset  = 0;
+    let allRows = [];
+    let hasMore = true;
 
-    allData = data.map(r => ({
-      order_id:  r.order_id,
+    while (hasMore) {
+      document.getElementById('loadingMsg').textContent =
+        `Đang tải... ${allRows.length.toLocaleString()} đơn`;
+
+      const url    = `${sbUrl()}/rest/v1/orders?select=order_id,order_date,platform,sku,product_name,qty,revenue,cogs,gross_profit,gm_pct,status&order=order_date.desc`;
+      const res    = await fetch(url, {
+        headers: {
+          'apikey':        sbKey(),
+          'Authorization': `Bearer ${sbKey()}`,
+          'Range':         `${offset}-${offset + BATCH - 1}`,
+          'Prefer':        'count=none',
+        }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+      const batch = await res.json();
+      allRows = allRows.concat(batch);
+
+      if (batch.length < BATCH) {
+        hasMore = false;  // het data
+      } else {
+        offset += BATCH;
+      }
+    }
+
+    allData = allRows.map(r => ({
+      order_id:   r.order_id,
       order_date: r.order_date ? new Date(r.order_date + 'T00:00:00') : null,
-      platform:  r.platform || '',
-      sku:       r.sku || '',
-      product:   r.product_name || '',
-      qty:       +r.qty || 0,
-      revenue:   +r.revenue || 0,
-      cogs:      +r.cogs || 0,
-      profit:    +r.gross_profit || 0,
-      gm:        +r.gm_pct || 0,
-      status:    r.status || '',
+      platform:   r.platform     || '',
+      sku:        r.sku          || '',
+      product:    r.product_name || '',
+      qty:        +r.qty         || 0,
+      revenue:    +r.revenue     || 0,
+      cogs:       +r.cogs        || 0,
+      profit:     +r.gross_profit|| 0,
+      gm:         +r.gm_pct      || 0,
+      status:     r.status       || '',
     })).filter(r => r.order_date);
 
     setDateRange();
