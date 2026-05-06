@@ -242,8 +242,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
 // Dien truc tiep o day hoac qua UI
-const SUPABASE_URL = "https://qcilaybuoqpucrllnair.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjaWxheWJ1b3FwdWNybGxuYWlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2Njc5MTQsImV4cCI6MjA5MjI0MzkxNH0._YzE49wTTzsflGUFyJWKqhDfLGgILYLXv6HxEcgHcHk";
+const SUPABASE_URL = "";
+const SUPABASE_KEY = "";
 
 // ── STATE ─────────────────────────────────────────────────────
 let allData = [], filteredData = [];
@@ -501,11 +501,13 @@ function renderDayTable() {
 }
 
 function groupBySKU(data) {
+  // Group theo sku + platform de tranh mat data khi cung SKU co tren nhieu san
   const map={};
   data.forEach(r=>{
-    if(!map[r.sku]) map[r.sku]={sku:r.sku,product:r.product,platform:r.platform,qty:0,revenue:0,cogs:0,profit:0};
-    map[r.sku].qty+=r.qty; map[r.sku].revenue+=r.revenue;
-    map[r.sku].cogs+=r.cogs; map[r.sku].profit+=r.revenue-r.cogs;
+    const key = r.sku + '|' + r.platform;
+    if(!map[key]) map[key]={sku:r.sku,product:r.product,platform:r.platform,qty:0,revenue:0,cogs:0,profit:0};
+    map[key].qty+=r.qty; map[key].revenue+=r.revenue;
+    map[key].cogs+=r.cogs; map[key].profit+=r.revenue-r.cogs;
   });
   return Object.values(map).map(s=>({...s,gm:s.revenue>0?s.profit/s.revenue:0}));
 }
